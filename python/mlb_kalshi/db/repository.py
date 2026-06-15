@@ -1,12 +1,34 @@
 import logging
 from datetime import date, datetime, timezone
+from decimal import Decimal
 from typing import Any
+
+import math
 
 from supabase import Client, create_client
 
 from mlb_kalshi.data.schemas import Game, KalshiMarket, Pick, Prediction
 
 LOGGER = logging.getLogger(__name__)
+
+
+def to_json_safe(value: Any) -> Any:
+    if isinstance(value, (date, datetime)):
+        return value.isoformat()
+    if isinstance(value, Decimal):
+        return float(value)
+    if isinstance(value, float):
+        return None if math.isnan(value) or math.isinf(value) else value
+    if isinstance(value, dict):
+        return {str(key): to_json_safe(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [to_json_safe(item) for item in value]
+    if hasattr(value, "item"):
+        try:
+            return to_json_safe(value.item())
+        except (TypeError, ValueError):
+            pass
+    return value
 
 
 class SupabaseRepository:
@@ -32,7 +54,7 @@ class SupabaseRepository:
                 "away_probable_pitcher_id": game.away_probable_pitcher_id,
                 "home_probable_pitcher_name": game.home_probable_pitcher_name,
                 "away_probable_pitcher_name": game.away_probable_pitcher_name,
-                "raw_payload": game.raw_payload,
+                "raw_payload": to_json_safe(game.raw_payload),
             }
             for game in games
         ]
@@ -96,7 +118,7 @@ class SupabaseRepository:
                         "implied_probability": market.implied_probability,
                         "volume": market.volume,
                         "open_interest": market.open_interest,
-                        "raw_payload": market.raw_payload,
+                        "raw_payload": to_json_safe(market.raw_payload),
                     }
                 )
         if rows:
@@ -119,7 +141,7 @@ class SupabaseRepository:
                 "confidence_score": prediction.confidence_score,
                 "confidence_rating": prediction.confidence_rating,
                 **prediction.advantages,
-                "feature_payload": prediction.feature_payload,
+                "feature_payload": to_json_safe(prediction.feature_payload),
             }
             for prediction in predictions
         ]
