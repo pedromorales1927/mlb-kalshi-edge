@@ -1,0 +1,56 @@
+name: Daily MLB Kalshi Edge
+
+on:
+  schedule:
+    - cron: "0 14 * * *"
+  workflow_dispatch:
+    inputs:
+      slate_date:
+        description: "Optional slate date YYYY-MM-DD"
+        required: false
+        type: string
+
+jobs:
+  run-daily:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run daily pipeline
+        env:
+          PYTHONPATH: python
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+          REPORT_EMAIL_FROM: ${{ secrets.REPORT_EMAIL_FROM }}
+          REPORT_EMAIL_TO: ${{ secrets.REPORT_EMAIL_TO }}
+          ALERT_EMAIL_TO: ${{ secrets.ALERT_EMAIL_TO }}
+          KALSHI_API_BASE: ${{ vars.KALSHI_API_BASE || 'https://external-api.kalshi.com/trade-api/v2' }}
+          KALSHI_CSV_PATH: ${{ secrets.KALSHI_CSV_PATH }}
+          LOCAL_TIMEZONE: America/Chicago
+          DEFAULT_BANKROLL_UNITS: ${{ vars.DEFAULT_BANKROLL_UNITS || '100' }}
+          FRACTIONAL_KELLY: ${{ vars.FRACTIONAL_KELLY || '0.25' }}
+          FIXED_UNIT_SIZE: ${{ vars.FIXED_UNIT_SIZE || '1' }}
+          SIZING_STRATEGY: ${{ vars.SIZING_STRATEGY || 'kelly' }}
+          MAX_BET_UNITS: ${{ vars.MAX_BET_UNITS || '2' }}
+          MAX_DAILY_EXPOSURE_UNITS: ${{ vars.MAX_DAILY_EXPOSURE_UNITS || '8' }}
+          MINIMUM_EDGE: ${{ vars.MINIMUM_EDGE || '0.04' }}
+          MINIMUM_CONFIDENCE: ${{ vars.MINIMUM_CONFIDENCE || '0.12' }}
+          REQUIRE_CONFIRMED_STARTERS: ${{ vars.REQUIRE_CONFIRMED_STARTERS || 'true' }}
+        run: |
+          if [ -n "${{ inputs.slate_date }}" ]; then
+            python scripts/run_daily.py --date "${{ inputs.slate_date }}"
+          else
+            python scripts/run_daily.py
+          fi

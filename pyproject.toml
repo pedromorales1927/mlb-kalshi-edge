@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mlb-kalshi-edge"
+version = "1.0.0"
+description = "Automated MLB expected value analytics for Kalshi markets"
+requires-python = ">=3.11"
+dependencies = [
+  "beautifulsoup4>=4.12.3",
+  "joblib>=1.4.2",
+  "numpy>=1.26.4",
+  "pandas>=2.2.2",
+  "pydantic>=2.8.2",
+  "pydantic-settings>=2.3.4",
+  "python-dateutil>=2.9.0",
+  "requests>=2.32.3",
+  "scikit-learn>=1.5.1",
+  "sendgrid>=6.11.0",
+  "supabase>=2.6.0"
+]
+
+[project.optional-dependencies]
+ml = ["xgboost>=2.1.0"]
+dev = ["pytest>=8.2.2", "ruff>=0.5.0", "mypy>=1.10.1"]
+
+[tool.setuptools.packages.find]
+where = ["python"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.pytest.ini_options]
+pythonpath = ["python"]
+testpaths = ["tests"]
+
